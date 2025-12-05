@@ -1,0 +1,96 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+local function getCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+-- Coleta todas as zonas seguras da pasta "Safezones"
+local safeZoneParts = {}
+local safeZoneFolder = Workspace:FindFirstChild("Safezones")
+if safeZoneFolder then
+    for _, part in ipairs(safeZoneFolder:GetChildren()) do
+        if part:IsA("BasePart") then
+            table.insert(safeZoneParts, part)
+        end
+    end
+end
+
+-- Verifica se uma posição está dentro de algum Part da safezone
+local function isInSafeZone(pos)
+    for _, zone in ipairs(safeZoneParts) do
+        local size = zone.Size
+        local cf = zone.CFrame
+        local relative = cf:pointToObjectSpace(pos)
+        local halfSize = size / 2
+        if math.abs(relative.X) <= halfSize.X and
+           math.abs(relative.Y) <= halfSize.Y and
+           math.abs(relative.Z) <= halfSize.Z then
+            return true
+        end
+    end
+    return false
+end
+
+-- Tabela para armazenar conexões
+local tracked = {}
+
+local function pullEnemyHeads()
+    local myChar = getCharacter()
+    local myRoot = myChar:WaitForChild("HumanoidRootPart")
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            if char and char:FindFirstChild("Head") and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+                local head = char.Head
+                local humanoid = char.Humanoid
+                local enemyRoot = char.HumanoidRootPart
+
+                local originalCFrame = head.CFrame
+                local isPulled = false
+
+                local renderConnection = RunService.RenderStepped:Connect(function()
+                    if head and myRoot and enemyRoot and humanoid.Health > 0 then
+                        local isVisible = head.Transparency < 1
+                        local isSafe = isInSafeZone(enemyRoot.Position)
+
+                        if isVisible and not isSafe then
+                            if not isPulled then
+                                head.Anchored = true
+                                isPulled = true
+                            end
+                            local frontOffset = myRoot.CFrame.LookVector * 5
+                            head.Position = myRoot.Position + frontOffset + Vector3.new(0, 2, 0)
+                        else
+                            if isPulled then
+                                head.Anchored = false
+                                head.CFrame = originalCFrame
+                                isPulled = false
+                            end
+                        end
+                    end
+                end)
+
+                local deathConnection
+                deathConnection = humanoid.HealthChanged:Connect(function(health)
+                    if health <= 0 and head.Anchored then
+                        head.Anchored = false
+                        if renderConnection then renderConnection:Disconnect() end
+                        if deathConnection then deathConnection:Disconnect() end
+                    end
+                end)
+
+                tracked[player] = {
+                    render = renderConnection,
+                    health = deathConnection
+                }
+            end
+        end
+    end
+end
+
+wait(1)
+pullEnemyHeads()
