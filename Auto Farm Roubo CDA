@@ -1,0 +1,225 @@
+local Players = game:GetService("Players")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local gui = Instance.new("ScreenGui", playerGui)
+gui.Name = "AutoFarmRouboCDA"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 260, 0, 280)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+
+local function criarBotao(texto, y, cor)
+    local b = Instance.new("TextButton", frame)
+    b.Size = UDim2.new(1, -20, 0, 30)
+    b.Position = UDim2.new(0, 10, 0, y)
+    b.Text = texto
+    b.BackgroundColor3 = cor
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.SourceSans
+    b.TextSize = 16
+    return b
+end
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "Auto Farm Roubo CDA"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+local btnMin = criarBotao("-", 5, Color3.fromRGB(60, 60, 60))
+btnMin.Size = UDim2.new(0, 20, 0, 20)
+btnMin.Position = UDim2.new(1, -30, 0, 5)
+
+local btnClose = criarBotao("X", 5, Color3.fromRGB(170, 0, 0))
+btnClose.Size = UDim2.new(0, 20, 0, 20)
+btnClose.Position = UDim2.new(1, -55, 0, 5)
+
+-- Botões principais
+local verde = Color3.fromRGB(0, 170, 0)
+local vermelho = Color3.fromRGB(170, 0, 0)
+
+local btnComprarOn = criarBotao("Comprar [+]", 40, verde)
+local btnComprarOff = criarBotao("Comprar [-]", 80, verde)
+local btnPreparar = criarBotao("Preparar [/]", 120, vermelho)
+local btnFarmOn = criarBotao("Farm [+]", 160, verde)
+local btnFarmOff = criarBotao("Farm [-]", 200, verde)
+local btnLavar = criarBotao("Lavagem [/]", 240, vermelho)
+
+_G.executarLoop = false
+
+-- Funções utilitárias
+local function getChar()
+    return player.Character or player.CharacterAdded:Wait()
+end
+
+local function tpTo(cf)
+    getChar():WaitForChild("HumanoidRootPart").CFrame = cf
+    wait(0.1)
+end
+
+local function prepPrompt(pp)
+    if pp and pp:IsA("ProximityPrompt") then
+        pp.Enabled = true
+        pp.HoldDuration = 0
+        pp.RequiresLineOfSight = false
+        pp.MaxActivationDistance = 20
+        pp.Exclusivity = Enum.ProximityPromptExclusivity.OnePerButton
+    end
+end
+
+local function activatePrompt(pp)
+    if not (pp and pp:IsA("ProximityPrompt")) then return end
+    pp:InputHoldBegin()
+    wait(0.05)
+    pp:InputHoldEnd()
+end
+
+local function ativarPrompt(nome, pos)
+    local c = workspace:FindFirstChild("Caixinhas")
+    if not c then return end
+    local cx = c:FindFirstChild(nome)
+    if not cx then return end
+    local r = cx:FindFirstChild("Roubo")
+    if not r then return end
+
+    local at = r:FindFirstChild("AT")
+    local pp = nil
+
+    if at then
+        pp = at:FindFirstChildWhichIsA("ProximityPrompt", true)
+    end
+    if not pp then
+        pp = r:FindFirstChildWhichIsA("ProximityPrompt", true)
+    end
+    if not pp then
+        for _, obj in ipairs(r:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") and obj.Parent:IsA("BasePart") then
+                local d = (obj.Parent.Position - pos.Position).Magnitude
+                if d < 12 then
+                    pp = obj
+                    break
+                end
+            end
+        end
+    end
+
+    if not pp then return end
+    prepPrompt(pp)
+    tpTo(pos + Vector3.new(0, 2, 0))
+    wait(0.2)
+    activatePrompt(pp)
+end
+
+-- Botões de ação
+btnComprarOn.MouseButton1Click:Connect(function()
+    local loja = playerGui:FindFirstChild("Loja de Armas")
+    if loja then
+        loja.Enabled = true
+    else
+        warn("❌ GUI 'Loja de Armas' não encontrada.")
+    end
+end)
+
+btnComprarOff.MouseButton1Click:Connect(function()
+    local loja = playerGui:FindFirstChild("Loja de Armas")
+    if loja then
+        loja.Enabled = false
+    end
+end)
+
+btnPreparar.MouseButton1Click:Connect(function()
+    tpTo(CFrame.new(78, 3, -569))
+    wait(1)
+    tpTo(CFrame.new(20, 6, -467))
+    wait(1)
+    tpTo(CFrame.new(674, 4, -114))
+    wait(1)
+    tpTo(CFrame.new(78, 3, -569))
+end)
+
+btnFarmOn.MouseButton1Click:Connect(function()
+    _G.executarLoop = true
+    spawn(function()
+        while _G.executarLoop do
+            ativarPrompt("CaixaRegistradoraB", CFrame.new(20, 6, -467))
+            wait(0.4)
+            if not _G.executarLoop then break end
+
+            ativarPrompt("CaixaRegistradoraH", CFrame.new(674, 4, -114))
+            wait(0.4)
+            if not _G.executarLoop then break end
+
+            ativarPrompt("CaixaRegistradoraX", CFrame.new(
+                -113.253372, 4.75616455, -203.542465,
+                -0.406715393, 0, 0.913554907,
+                0, 1, 0,
+                -0.913554907, 0, -0.406715393
+            ))
+            wait(0.5)
+
+            tpTo(CFrame.new(78, 3, -569))
+            for i = 1, 81 do
+                if not _G.executarLoop then break end
+                wait(1)
+            end
+        end
+    end)
+end)
+
+btnFarmOff.MouseButton1Click:Connect(function()
+    _G.executarLoop = false
+end)
+
+btnLavar.MouseButton1Click:Connect(function()
+    tpTo(CFrame.new(-282, 65, 942))
+end)
+
+-- Minimizar e fechar
+btnMin.MouseButton1Click:Connect(function()
+    for _, b in pairs({btnComprarOn, btnComprarOff, btnPreparar, btnFarmOn, btnFarmOff, btnLavar}) do
+        b.Visible = not b.Visible
+    end
+end)
+
+btnClose.MouseButton1Click:Connect(function()
+    _G.executarLoop = false
+    gui:Destroy()
+end)
+
+-- Arrastar o frame
+local dragging, dragInput, mousePos, framePos
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        mousePos = input.Position
+        framePos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - mousePos
+        frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
