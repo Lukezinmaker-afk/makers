@@ -1,0 +1,186 @@
+-- Serviços
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI Principal
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "LenhadorHub"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 400, 0, 350)
+main.Position = UDim2.new(0.5, -200, 0.5, -175)
+main.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, -40, 0, 40)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "Hub de Lenhador"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 22
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+
+local close = Instance.new("TextButton", main)
+close.Size = UDim2.new(0, 30, 0, 30)
+close.Position = UDim2.new(1, -35, 0, 5)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+close.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", close)
+close.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Size = UDim2.new(1, -20, 1, -50)
+scroll.Position = UDim2.new(0, 10, 0, 45)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.ScrollBarThickness = 6
+scroll.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0, 10)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+end)
+
+-- Função para criar botões
+local function criarBotao(nome, descricao, funcao)
+    local botao = Instance.new("TextButton", scroll)
+    botao.Size = UDim2.new(1, 0, 0, 50)
+    botao.Text = nome
+    botao.Font = Enum.Font.SourceSansBold
+    botao.TextSize = 20
+    botao.TextColor3 = Color3.new(1, 1, 1)
+    botao.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Instance.new("UICorner", botao)
+
+    botao.MouseButton1Click:Connect(funcao)
+
+    local label = Instance.new("TextLabel", botao)
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 1, -20)
+    label.Text = descricao
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.BackgroundTransparency = 1
+end
+
+-- Funções utilitárias
+local function getCharacter()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    char:WaitForChild("HumanoidRootPart")
+    return char
+end
+
+local function teleportPlayer(pos)
+    getCharacter().HumanoidRootPart.CFrame = CFrame.new(pos)
+end
+
+local function findPromptNearPosition(targetPos, maxDistance)
+    local nearestPrompt = nil
+    local nearestDist = math.huge
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            local part = obj.Parent
+            if part and part:IsA("BasePart") then
+                local dist = (part.Position - targetPos).Magnitude
+                if dist <= maxDistance and dist < nearestDist then
+                    nearestDist = dist
+                    nearestPrompt = obj
+                end
+            end
+        end
+    end
+    return nearestPrompt
+end
+
+local function activatePrompt(prompt)
+    if prompt then
+        prompt:InputHoldBegin()
+        task.wait(prompt.HoldDuration or 0.1)
+        prompt:InputHoldEnd()
+    end
+end
+
+-- Botões
+
+-- TP para Emprego
+criarBotao("TP Emprego", "Vai para o local de emprego", function()
+    teleportPlayer(Vector3.new(-293, 14, 1486))
+end)
+
+-- Ativar prompt de corte
+criarBotao("Cortar Árvore", "Teleporta e ativa prompt de corte", function()
+    teleportPlayer(Vector3.new(-1821, 5, 2139))
+    task.wait()
+    local prompt = findPromptNearPosition(Vector3.new(-1824.1449, 4.8844099, 2138.70776), 5)
+    if prompt then
+        activatePrompt(prompt)
+    else
+        warn("Prompt de corte não encontrado.")
+    end
+end)
+
+-- Preparar prompt de coleta
+criarBotao("Preparar Coleta", "Configura prompt de coleta", function()
+    teleportPlayer(Vector3.new(-1831, 5, 2183))
+    local target = Vector3.new(-1830.72668, 5.3240242, 2187.09009)
+    local prompt = findPromptNearPosition(target, 5)
+    if prompt then
+        prompt.HoldDuration = 0
+        prompt.Style = Enum.ProximityPromptStyle.Default
+        prompt.Enabled = true
+        prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+            if not prompt.Enabled then
+                prompt.Enabled = true
+                warn("Prompt reativado automaticamente.")
+            end
+        end)
+    else
+        warn("Prompt de coleta não encontrado.")
+    end
+end)
+
+-- Loop de coleta
+criarBotao("Iniciar Coleta", "Loop insano de coleta", function()
+    _G.loopLixo = true
+    task.spawn(function()
+        local target = Vector3.new(-1830.72668, 5.3240242, 2187.09009)
+        while _G.loopLixo do
+            local prompt = findPromptNearPosition(target, 5)
+            if prompt then activatePrompt(prompt) end
+            task.wait(0.01)
+        end
+    end)
+end)
+
+criarBotao("Parar Coleta", "Interrompe loop de coleta", function()
+    _G.loopLixo = false
+end)
+
+-- Loop de venda
+criarBotao("Iniciar Venda", "Loop de venda automática", function()
+    _G.loopVenda = true
+    teleportPlayer(Vector3.new(-1875, 5, 2057))
+    task.spawn(function()
+        local target = Vector3.new(-1878.56372, 5.1175375, 2057.32983)
+        while _G.loopVenda do
+            local prompt = findPromptNearPosition(target, 5)
+            if prompt then activatePrompt(prompt) end
+            task.wait(0.01)
+        end
+    end)
+end)
+
+criarBotao("Parar Venda", "Interrompe loop de venda", function()
+    _G.loopVenda = false
+end)
