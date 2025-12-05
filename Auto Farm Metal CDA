@@ -1,0 +1,194 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Criar a tela
+local screenGui = Instance.new("ScreenGui", playerGui)
+screenGui.Name = "AutoFarmMetalCDA"
+
+-- Criar o frame principal
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 220, 0, 150)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+
+-- Título
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "Auto Farm Metal CDA"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Botão Minimizar
+local btnMin = Instance.new("TextButton", frame)
+btnMin.Size = UDim2.new(0, 20, 0, 20)
+btnMin.Position = UDim2.new(1, -30, 0, 5)
+btnMin.Text = "-"
+btnMin.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+btnMin.TextColor3 = Color3.new(1, 1, 1)
+btnMin.Font = Enum.Font.SourceSansBold
+btnMin.TextSize = 16
+
+-- Botão Fechar
+local btnClose = Instance.new("TextButton", frame)
+btnClose.Size = UDim2.new(0, 20, 0, 20)
+btnClose.Position = UDim2.new(1, -55, 0, 5)
+btnClose.Text = "X"
+btnClose.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+btnClose.TextColor3 = Color3.new(1, 1, 1)
+btnClose.Font = Enum.Font.SourceSansBold
+btnClose.TextSize = 16
+
+-- Botão Ativar
+local btnAtivar = Instance.new("TextButton", frame)
+btnAtivar.Size = UDim2.new(1, -20, 0, 30)
+btnAtivar.Position = UDim2.new(0, 10, 0, 40)
+btnAtivar.Text = "Ativar Farm"
+btnAtivar.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+btnAtivar.TextColor3 = Color3.new(1, 1, 1)
+btnAtivar.Font = Enum.Font.SourceSans
+btnAtivar.TextSize = 16
+
+-- Botão Desativar
+local btnDesativar = Instance.new("TextButton", frame)
+btnDesativar.Size = UDim2.new(1, -20, 0, 30)
+btnDesativar.Position = UDim2.new(0, 10, 0, 80)
+btnDesativar.Text = "Desativar Farm"
+btnDesativar.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+btnDesativar.TextColor3 = Color3.new(1, 1, 1)
+btnDesativar.Font = Enum.Font.SourceSans
+btnDesativar.TextSize = 16
+
+-- Variável global de controle
+_G.executarLoop = false
+
+-- Função de farm
+local function iniciarFarm()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local backpack = player:WaitForChild("Backpack")
+
+    local destinoPrompt = nil
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") and obj.Parent:IsA("BasePart") then
+            local pos = obj.Parent.Position
+            if (pos - Vector3.new(-824.188416, 8.43029404, -129.183777)).Magnitude < 1 then
+                destinoPrompt = obj
+                break
+            end
+        end
+    end
+
+    local function teleportTo(position)
+        local hrp = character:WaitForChild("HumanoidRootPart")
+        hrp.CFrame = CFrame.new(position)
+        wait(0.1)
+    end
+
+    local function activatePromptNear(position, maxDistance)
+        maxDistance = maxDistance or 10
+        local closestPrompt = nil
+        local closestDist = maxDistance
+
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") and obj.Enabled then
+                local part = obj.Parent
+                if part and part:IsA("BasePart") then
+                    local dist = (part.Position - position).Magnitude
+                    if dist < closestDist then
+                        closestPrompt = obj
+                        closestDist = dist
+                    end
+                end
+            end
+        end
+
+        if closestPrompt then
+            closestPrompt:InputHoldBegin()
+            wait(0.2)
+            closestPrompt:InputHoldEnd()
+        end
+    end
+
+    local function equipTool(toolName)
+        local tool = backpack:FindFirstChild(toolName)
+        if tool and tool:IsA("Tool") then
+            tool.Parent = character
+        end
+    end
+
+    local function executarSequencia()
+        teleportTo(Vector3.new(-767, 3, -139))
+        activatePromptNear(Vector3.new(-770.364929, 5.00542259, -140.417404))
+        equipTool("Metal")
+        teleportTo(Vector3.new(-823, 7, -132))
+        activatePromptNear(Vector3.new(-824.188416, 8.43029404, -129.183777))
+    end
+
+    spawn(function()
+        while _G.executarLoop do
+            if destinoPrompt and destinoPrompt.Enabled then
+                executarSequencia()
+                wait(0.5)
+            else
+                wait(0.2)
+            end
+        end
+    end)
+end
+
+-- Conectar botões
+btnAtivar.MouseButton1Click:Connect(function()
+    _G.executarLoop = true
+    iniciarFarm()
+end)
+
+btnDesativar.MouseButton1Click:Connect(function()
+    _G.executarLoop = false
+end)
+
+btnMin.MouseButton1Click:Connect(function()
+    local hidden = btnAtivar.Visible
+    btnAtivar.Visible = not hidden
+    btnDesativar.Visible = not hidden
+end)
+
+btnClose.MouseButton1Click:Connect(function()
+    _G.executarLoop = false
+    screenGui:Destroy()
+end)
+
+-- Tornar o frame arrastável
+local dragging = false
+local dragInput, mousePos, framePos
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        mousePos = input.Position
+        framePos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - mousePos
+        frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
