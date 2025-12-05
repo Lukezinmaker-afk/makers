@@ -1,0 +1,177 @@
+-- Serviços
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI Principal
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "HubTP"
+gui.ResetOnSpawn = false
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 400, 0, 300)
+main.Position = UDim2.new(0.5, -200, 0.5, -150)
+main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, -40, 0, 40)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "Hub de Teleporte"
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 22
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+
+local close = Instance.new("TextButton", main)
+close.Size = UDim2.new(0, 30, 0, 30)
+close.Position = UDim2.new(1, -35, 0, 5)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+close.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", close)
+close.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+local scroll = Instance.new("ScrollingFrame", main)
+scroll.Size = UDim2.new(1, -20, 1, -50)
+scroll.Position = UDim2.new(0, 10, 0, 45)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.ScrollBarThickness = 6
+scroll.BackgroundTransparency = 1
+
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0, 10)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+end)
+
+-- Função para criar botões
+local function criarBotao(nome, descricao, funcao)
+    local botao = Instance.new("TextButton", scroll)
+    botao.Size = UDim2.new(1, 0, 0, 50)
+    botao.Text = nome
+    botao.Font = Enum.Font.SourceSansBold
+    botao.TextSize = 20
+    botao.TextColor3 = Color3.new(1, 1, 1)
+    botao.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Instance.new("UICorner", botao)
+
+    botao.MouseButton1Click:Connect(funcao)
+
+    local label = Instance.new("TextLabel", botao)
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 1, -20)
+    label.Text = descricao
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    label.BackgroundTransparency = 1
+end
+
+-- TP para Emprego
+criarBotao("TP Emprego", "Teleporta para o local de emprego", function()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    char:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(-293, 14, 1486)
+end)
+
+-- Configurar Prompts + TP
+criarBotao("Configurar Prompts", "Configura e teleporta para prompt", function()
+    local cframe1 = CFrame.new(-481.9711, 6.57462311, 1955.65784)
+    local cframe2 = CFrame.new(-330.589386, 5.90882063, 1906.87598)
+
+    local function isClose(a, b, tolerance)
+        tolerance = tolerance or 1
+        return (a.Position - b.Position).Magnitude <= tolerance
+    end
+
+    local function configurePrompt(prompt)
+        if prompt:IsA("ProximityPrompt") then
+            prompt.HoldDuration = 0
+            prompt.Style = Enum.ProximityPromptStyle.Default
+            print("Configurado:", prompt.Name)
+        end
+    end
+
+    for _, descendant in ipairs(workspace:GetDescendants()) do
+        if descendant:IsA("ProximityPrompt") and descendant.Parent:IsA("BasePart") then
+            local partCFrame = descendant.Parent.CFrame
+            if isClose(partCFrame, cframe1) or isClose(partCFrame, cframe2) then
+                configurePrompt(descendant)
+            end
+        end
+    end
+
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = cframe1
+    end
+end)
+
+-- Ligar Loop
+criarBotao("Ligar Loop", "Ativa ciclo de prompts", function()
+    local promptCFrame1 = CFrame.new(-481.9711, 6.57462311, 1955.65784)
+    local promptCFrame2 = CFrame.new(-330.589386, 5.90882063, 1906.87598)
+    local tp1 = CFrame.new(-486, 5, 1956)
+    local tp2 = CFrame.new(-327, 5, 1906)
+
+    local function isClose(a, b, tolerance)
+        tolerance = tolerance or 1
+        return (a.Position - b.Position).Magnitude <= tolerance
+    end
+
+    local function findPrompt(targetCFrame)
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") and obj.Parent:IsA("BasePart") then
+                if isClose(obj.Parent.CFrame, targetCFrame) then
+                    return obj
+                end
+            end
+        end
+        return nil
+    end
+
+    local function teleportTo(cframe)
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = cframe
+        end
+    end
+
+    local function activatePrompt(prompt)
+        if prompt then
+            prompt:InputHoldBegin()
+            wait(0.1)
+            prompt:InputHoldEnd()
+        end
+    end
+
+    _G.loopLixo = true
+    task.spawn(function()
+        while _G.loopLixo do
+            teleportTo(tp1)
+            wait(0.1)
+            activatePrompt(findPrompt(promptCFrame1))
+
+            teleportTo(tp2)
+            wait(0.1)
+            activatePrompt(findPrompt(promptCFrame2))
+
+            teleportTo(tp1)
+            wait(0.1)
+        end
+    end)
+end)
+
+-- Desligar Loop
+criarBotao("Desligar Loop", "Interrompe ciclo de prompts", function()
+    _G.loopLixo = false
+end)
