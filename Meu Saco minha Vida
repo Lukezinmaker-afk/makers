@@ -1,0 +1,207 @@
+-- LocalScript em StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Criar GUI
+local gui = Instance.new("ScreenGui", playerGui)
+gui.Name = "Meu Saco minha Vida"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 260, 0, 260)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+
+local function criarBotao(texto, y, cor)
+    local b = Instance.new("TextButton", frame)
+    b.Size = UDim2.new(1, -20, 0, 30)
+    b.Position = UDim2.new(0, 10, 0, y)
+    b.Text = texto
+    b.BackgroundColor3 = cor
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.SourceSansBold
+    b.TextSize = 16
+    return b
+end
+
+-- Título
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "Meu Saco minha Vida"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Botões Minimizar e Fechar
+local btnMin = criarBotao("-", 5, Color3.fromRGB(60, 60, 60))
+btnMin.Size = UDim2.new(0, 20, 0, 20)
+btnMin.Position = UDim2.new(1, -30, 0, 5)
+
+local btnClose = criarBotao("X", 5, Color3.fromRGB(170, 0, 0))
+btnClose.Size = UDim2.new(0, 20, 0, 20)
+btnClose.Position = UDim2.new(1, -55, 0, 5)
+
+-- Botões principais
+local verde = Color3.fromRGB(0, 170, 0)
+local vermelho = Color3.fromRGB(170, 0, 0)
+
+local btnPreparar = criarBotao("Preparar", 40, verde)
+local btnFarmOn = criarBotao("Farm [+]", 80, verde)
+local btnFarmOff = criarBotao("Farm [-]", 120, vermelho)
+local btnApagar = criarBotao("Apagar Damage", 160, Color3.fromRGB(200, 80, 0))
+
+-- Variáveis globais
+_G.FarmAtivo = false
+_G.FarmDesativo = false
+
+-- Funções utilitárias
+local function getHRP()
+    local character = player.Character or player.CharacterAdded:Wait()
+    return character:WaitForChild("HumanoidRootPart")
+end
+
+local function tpCFrame(hrp, x,y,z, r00,r01,r02, r10,r11,r12, r20,r21,r22)
+    hrp.CFrame = CFrame.new(x,y,z, r00,r01,r02, r10,r11,r12, r20,r21,r22)
+end
+
+local function getPrompt(obj)
+    if not obj then return nil end
+    if obj:IsA("ProximityPrompt") then return obj end
+    return obj:FindFirstChildOfClass("ProximityPrompt")
+end
+
+local function pressPrompt(prompt, times, interval)
+    if not prompt then return end
+    prompt.HoldDuration = 0
+    for i = 1, times do
+        fireproximityprompt(prompt, 1)
+        task.wait(interval or 0.01)
+    end
+end
+
+-- Botão Preparar
+btnPreparar.MouseButton1Click:Connect(function()
+    local hrp = getHRP()
+    tpCFrame(hrp, -458.48761, 59.8830261, 1300.03406, 1,0,0, 0,1,0, 0,0,1)
+    task.wait(1)
+    local prompt = workspace.Loterica.Cofre.Prompt.ProximityPrompt
+    if prompt then
+        prompt.HoldDuration = 0
+        fireproximityprompt(prompt, 1)
+    end
+end)
+
+-- Botão Farm On
+btnFarmOn.MouseButton1Click:Connect(function()
+    if _G.FarmAtivo then return end
+    _G.FarmDesativo = false
+    _G.FarmAtivo = true
+
+    spawn(function()
+        while _G.FarmAtivo and not _G.FarmDesativo do
+            local hrp = getHRP()
+            tpCFrame(hrp, -469.757294, 54.1722755, 1297.52625, 0,0,1, 0,1,0, -1,0,0)
+            task.wait(0.3)
+
+            local promptRoubar = getPrompt(workspace.Loterica.Pegar.Union.Roubar_Bank)
+            pressPrompt(promptRoubar, 8, 0.01)
+
+            tpCFrame(hrp, -357.257141, 193.698547, 2732.50488, 1,0,0, 0,1,0, 0,0,1)
+            task.wait(0.3)
+
+            local promptEntregar = workspace.SistemaBank.Entregar.Bandit.Prompt.ProximityPrompt
+            if promptEntregar then
+                promptEntregar.HoldDuration = 0
+                fireproximityprompt(promptEntregar, 1)
+            end
+
+            task.wait(0.2)
+        end
+    end)
+end)
+
+-- Botão Farm Off
+btnFarmOff.MouseButton1Click:Connect(function()
+    _G.FarmDesativo = true
+    _G.FarmAtivo = false
+end)
+
+-- Botão Apagar Damage
+btnApagar.MouseButton1Click:Connect(function()
+    local mapa = workspace:FindFirstChild("MAPA")
+    if mapa and mapa:FindFirstChild("FallDamage") then
+        mapa.FallDamage:Destroy()
+    end
+
+    if ReplicatedStorage:FindFirstChild("DamageEvent") then
+        ReplicatedStorage.DamageEvent:Destroy()
+    end
+
+    local acs = workspace:FindFirstChild("ACS_Engine")
+    if acs and acs:FindFirstChild("Events") and acs.Events:FindFirstChild("Damage") then
+        acs.Events.Damage:Destroy()
+    end
+end)
+
+-- Minimizar e maximizar corretamente
+local minimized = false
+local originalSize = frame.Size
+
+btnMin.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    for _, child in ipairs(frame:GetChildren()) do
+        local keepVisible = (child == title) or (child == btnMin) or (child == btnClose)
+        if not keepVisible then
+            child.Visible = not minimized
+        end
+    end
+    if minimized then
+        frame.Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 30)
+    else
+        frame.Size = originalSize
+    end
+end)
+
+-- Fechar
+btnClose.MouseButton1Click:Connect(function()
+    _G.FarmDesativo = true
+    _G.FarmAtivo = false
+    gui:Destroy()
+end)
+
+-- Arrastar o frame
+local dragging, dragInput, mousePos, framePos
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        mousePos = input.Position
+        framePos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - mousePos
+        frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X,
+                                   framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
