@@ -1,0 +1,255 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "Meu Saco minha Vida Peças"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 260, 0, 200)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Parent = gui
+
+local function criarBotao(texto, y, cor)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -20, 0, 30)
+    b.Position = UDim2.new(0, 10, 0, y)
+    b.Text = texto
+    b.BackgroundColor3 = cor
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.SourceSansBold
+    b.TextSize = 16
+    b.AutoButtonColor = true
+    b.Parent = frame
+    return b
+end
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "Meu Saco minha Vida Peças"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
+
+local btnMin = criarBotao("-", 5, Color3.fromRGB(60, 60, 60))
+btnMin.Size = UDim2.new(0, 20, 0, 20)
+btnMin.Position = UDim2.new(1, -30, 0, 5)
+
+local btnClose = criarBotao("X", 5, Color3.fromRGB(170, 0, 0))
+btnClose.Size = UDim2.new(0, 20, 0, 20)
+btnClose.Position = UDim2.new(1, -55, 0, 5)
+
+local verde = Color3.fromRGB(0, 170, 0)
+local vermelho = Color3.fromRGB(170, 0, 0)
+
+local btnFarmOn = criarBotao("Farm [+]", 50, verde)
+local btnFarmOff = criarBotao("Farm [-]", 90, vermelho)
+local btnApagar = criarBotao("Apagar Damage", 130, Color3.fromRGB(200, 80, 0))
+
+local function getHRP()
+    local character = player.Character or player.CharacterAdded:Wait()
+    return character:WaitForChild("HumanoidRootPart")
+end
+
+local function getPromptWorldPos(prompt)
+    local parent = prompt.Parent
+    if parent and parent:IsA("Attachment") and parent.Parent and parent.Parent:IsA("BasePart") then
+        return parent.WorldPosition
+    elseif parent and parent:IsA("BasePart") then
+        return parent.Position
+    end
+    return nil
+end
+
+local function findPromptNear(targetPos, radius)
+    local closest, dist = nil, math.huge
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            local pos = getPromptWorldPos(obj)
+            if pos then
+                local d = (pos - targetPos).Magnitude
+                if d <= radius and d < dist then
+                    closest, dist = obj, d
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function teleport(cf)
+    local hrp = getHRP()
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.CFrame = cf
+end
+
+local function fireProximity(prompt)
+    if prompt then
+        fireproximityprompt(prompt)
+    end
+end
+
+local rotas = {
+    { 
+        cf = CFrame.new(-885.70282, 14.9971237, 1740.89722,
+            0.966026723, -0.015039511, 0.258004308,
+            0.00224349881, 0.998755753, 0.0498190038,
+            -0.258432567, -0.047547657, 0.964858472),
+        promptPos = Vector3.new(-885.70282, 14.9971237, 1740.89722)
+    },
+    { 
+        cf = CFrame.new(-376.355316, 2.73701477, 1399.24841,
+            -1.1920929e-07, 0, 1.00000012, 0, 1, 0, -1.00000012, 0, -1.1920929e-07),
+        promptPos = Vector3.new(-376.355316, 2.73701477, 1399.24841)
+    },
+    { 
+        cf = CFrame.new(-786.779175, 3.09382343, 1177.64709,
+            -1.1920929e-07, 0, 1.00000012, 0, 1, 0, -1.00000012, 0, -1.1920929e-07),
+        promptPos = Vector3.new(-786.779175, 3.09382343, 1177.64709)
+    },
+    { 
+        cf = CFrame.new(-1202.58643, 11.3841, 824.59729,
+            -1.1920929e-07, 0, 1.00000012, 0, 1, 0, -1.00000012, 0, -1.1920929e-07),
+        promptPos = Vector3.new(-1202.58643, 11.3841, 824.59729)
+    },
+    { 
+        cf = CFrame.new(-1658.91846, 2.56046009, 1399.44446,
+            -1.1920929e-07, 0, 1.00000012, 0, 1, 0, -1.00000012, 0, -1.1920929e-07),
+        promptPos = Vector3.new(-1658.91846, 2.56046009, 1399.44446)
+    },
+    { 
+        cf = CFrame.new(-1849.85303, 2.79634809, 1691.40552,
+            -1, 0, 0, 0, 1, 0, 0, 0, -1),
+        promptPos = Vector3.new(-1849.85303, 2.79634809, 1691.40552)
+    },
+    { 
+        cf = CFrame.new(-1784.87, 2.50000501, 2095.15698,
+            0, 0, 1, 0, 1, 0, -1, 0, 0),
+        promptPos = Vector3.new(-1784.87, 2.50000501, 2095.15698)
+    },
+    { 
+        cf = CFrame.new(-1408.82178, 16.7377567, 2384.72607,
+            -1.1920929e-07, 0, 1.00000012, 0, 1, 0, -1.00000012, 0, -1.1920929e-07),
+        promptPos = Vector3.new(-1408.82178, 16.7377567, 2384.72607)
+    },
+    { 
+        cf = CFrame.new(-1227.31958, 16.7977619, 2656.4895,
+            0, 0, 1, 0, 1, 0, -1, 0, 0),
+        promptPos = Vector3.new(-1227.31958, 16.7977619, 2656.4895)
+    },
+    { 
+        cf = CFrame.new(-1171.70544, 16.9931984, 2948.36792,
+            -1.1920929e-07, 0, 1.00000012, 0, 1, 0, -1.00000012, 0, -1.1920929e-07),
+        promptPos = Vector3.new(-1171.70544, 16.9931984, 2948.36792)
+    },
+    { 
+        cf = CFrame.new(-1135.48157, 17.4802589, 3450.82373,
+            -1.1920929e-07, 0, 1.00000012, 0, 1, 0, -1.00000012, 0, -1.1920929e-07),
+        promptPos = Vector3.new(-1135.48157, 17.4802589, 3450.82373)
+    },
+}
+
+_G.AtivarLoop = false
+local runningThread = nil
+
+local function startFarmLoop()
+    if _G.AtivarLoop or runningThread then return end
+    _G.AtivarLoop = true
+    runningThread = task.spawn(function()
+        while _G.AtivarLoop do
+            for _, rota in ipairs(rotas) do
+                if not _G.AtivarLoop then break end
+                teleport(rota.cf)
+                task.wait(0.4)
+                local prompt = findPromptNear(rota.promptPos, 8)
+                if not prompt then
+                    -- tentativa imediata novamente
+                    prompt = findPromptNear(rota.promptPos, 12)
+                end
+                fireProximity(prompt)
+                task.wait(0.4)
+            end
+        end
+        runningThread = nil
+    end)
+end
+
+local function stopFarmLoop()
+    _G.AtivarLoop = false
+end
+
+btnFarmOn.MouseButton1Click:Connect(startFarmLoop)
+btnFarmOff.MouseButton1Click:Connect(stopFarmLoop)
+
+btnApagar.MouseButton1Click:Connect(function()
+    local mapa = workspace:FindFirstChild("MAPA")
+    if mapa and mapa:FindFirstChild("FallDamage") then
+        mapa.FallDamage:Destroy()
+    end
+
+    if ReplicatedStorage:FindFirstChild("DamageEvent") then
+        ReplicatedStorage.DamageEvent:Destroy()
+    end
+
+    local acs = workspace:FindFirstChild("ACS_Engine")
+    if acs and acs:FindFirstChild("Events") and acs.Events:FindFirstChild("Damage") then
+        acs.Events.Damage:Destroy()
+    end
+end)
+
+local minimized = false
+local originalSize = frame.Size
+
+btnMin.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    for _, child in ipairs(frame:GetChildren()) do
+        local keep = (child == title) or (child == btnMin) or (child == btnClose)
+        if not keep then child.Visible = not minimized end
+    end
+    frame.Size = minimized and UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, 30) or originalSize
+end)
+
+btnClose.MouseButton1Click:Connect(function()
+    stopFarmLoop()
+    gui:Destroy()
+end)
+
+local dragging, dragInput, mousePos, framePos
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        mousePos = input.Position
+        framePos = frame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - mousePos
+        frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+    end
+end)
+
+player.CharacterAdded:Connect(function()
+    getHRP()
+end)
