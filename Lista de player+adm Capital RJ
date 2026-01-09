@@ -5,7 +5,6 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local tempo = 1.5
 
--- Lista de nicks especiais
 local listaEspecial = {
     "vovo2654","hftwsa","denisds79","Ryck6666","depenote0",
     "NINJAYTTDFW","Vitiu173","yM4theux","kauezin_trem7x",
@@ -13,12 +12,10 @@ local listaEspecial = {
     "DGDOG1862","leo09b"
 }
 
--- Evita duplicar GUI
 if game.CoreGui:FindFirstChild("Lista_De_Admin") then
     game.CoreGui.Lista_De_Admin:Destroy()
 end
 
--- GUI principal
 local gui = Instance.new("ScreenGui")
 gui.Name = "Lista_De_Admin"
 gui.ResetOnSpawn = false
@@ -30,9 +27,7 @@ frame.Size = UDim2.new(0, 360, 0, 460)
 frame.Position = UDim2.new(0.5, -180, 0.5, -230)
 Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
 
--- Header com gradiente
 local header = Instance.new("TextLabel", frame)
-header.Name = "Header"
 header.Size = UDim2.new(1, 0, 0, 44)
 header.BackgroundColor3 = Color3.fromRGB(40, 80, 160)
 header.TextColor3 = Color3.new(1,1,1)
@@ -41,13 +36,6 @@ header.Font = Enum.Font.GothamBold
 header.TextSize = 20
 Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12)
 
-local grad = Instance.new("UIGradient", header)
-grad.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(60,120,220)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(40,80,160))
-}
-
--- Botão de fechar
 local closeBtn = Instance.new("TextButton", header)
 closeBtn.Size = UDim2.new(0,32,0,32)
 closeBtn.Position = UDim2.new(1,-36,0.5,-16)
@@ -58,7 +46,6 @@ closeBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,8)
 closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
 
--- Botão de minimizar
 local minimizeBtn = Instance.new("TextButton", header)
 minimizeBtn.Size = UDim2.new(0,32,0,32)
 minimizeBtn.Position = UDim2.new(1,-72,0.5,-16)
@@ -70,7 +57,42 @@ Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,8)
 
 local minimized = false
 
--- Conteúdo (fundo preenchido)
+do
+    local dragging, dragInput, dragStart, startPos
+
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    header.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
 local content = Instance.new("Frame", frame)
 content.BackgroundColor3 = Color3.fromRGB(28, 30, 40)
 content.Size = UDim2.new(1, -16, 1, -60)
@@ -101,37 +123,11 @@ minimizeBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Arrastar janela
-do
-    local dragging, dragInput, dragStart, startPos
-    header.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-    header.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
--- Controle da câmera (seguir, orbitar com RMB e zoom)
 local viewingTarget = nil
 local yaw, pitch = 0, 0
 local distance = 12
 local rotating = false
 
--- Ativa/desativa rotação com RMB
 UserInputService.InputBegan:Connect(function(input)
     if viewingTarget and input.UserInputType == Enum.UserInputType.MouseButton2 then
         rotating = true
@@ -146,14 +142,12 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Zoom com roda do mouse
 UserInputService.InputChanged:Connect(function(input)
     if viewingTarget and input.UserInputType == Enum.UserInputType.MouseWheel then
         distance = math.clamp(distance - input.Position.Z, 6, 40)
     end
 end)
 
--- Rotação com mouse (quando RMB pressionado)
 UserInputService.InputChanged:Connect(function(input)
     if viewingTarget and rotating and input.UserInputType == Enum.UserInputType.MouseMovement then
         yaw = yaw - input.Delta.X * 0.003
@@ -161,7 +155,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Atualiza câmera
 RunService.RenderStepped:Connect(function()
     local cam = workspace.CurrentCamera
     if viewingTarget and viewingTarget.Character and viewingTarget.Character:FindFirstChild("HumanoidRootPart") then
@@ -176,7 +169,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Linha de player (nome + botão à direita)
 local function CriarLinhaPlayer(parent, plr)
     local row = Instance.new("Frame")
     row.Name = "Row_" .. plr.Name
@@ -207,7 +199,6 @@ local function CriarLinhaPlayer(parent, plr)
     viewBtn.Font = Enum.Font.GothamBold
     Instance.new("UICorner", viewBtn).CornerRadius = UDim.new(0,8)
 
-    -- Botão de ver/voltar
     viewBtn.MouseButton1Click:Connect(function()
         local cam = workspace.CurrentCamera
         if not viewingTarget then
@@ -228,7 +219,6 @@ local function CriarLinhaPlayer(parent, plr)
         end
     end)
 
-    -- Efeito colorido para nicks especiais
     if table.find(listaEspecial, plr.Name) then
         task.spawn(function()
             local cores = {
@@ -253,18 +243,25 @@ local function CriarLinhaPlayer(parent, plr)
     return row
 end
 
--- Atualizar lista
 local function AtualizarLista()
+    
     for _, child in ipairs(scrolling:GetChildren()) do
         if child:IsA("Frame") and child.Name:match("^Row_") then
             child:Destroy()
         end
     end
+    
     for _, plr in ipairs(Players:GetPlayers()) do
         CriarLinhaPlayer(scrolling, plr)
     end
 end
 
 AtualizarLista()
-Players.PlayerAdded:Connect(AtualizarLista)
-Players.PlayerRemoving:Connect(AtualizarLista)
+
+Players.PlayerAdded:Connect(function()
+    AtualizarLista()
+end)
+
+Players.PlayerRemoving:Connect(function()
+    AtualizarLista()
+end)
