@@ -1,0 +1,270 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local tempo = 1.5
+
+-- Lista de nicks especiais
+local listaEspecial = {
+    "vovo2654","hftwsa","denisds79","Ryck6666","depenote0",
+    "NINJAYTTDFW","Vitiu173","yM4theux","kauezin_trem7x",
+    "xxjgpro","waitingranch389","Anemonha","mafisooo1ss",
+    "DGDOG1862","leo09b"
+}
+
+-- Evita duplicar GUI
+if game.CoreGui:FindFirstChild("Lista_De_Admin") then
+    game.CoreGui.Lista_De_Admin:Destroy()
+end
+
+-- GUI principal
+local gui = Instance.new("ScreenGui")
+gui.Name = "Lista_De_Admin"
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
+
+local frame = Instance.new("Frame", gui)
+frame.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+frame.Size = UDim2.new(0, 360, 0, 460)
+frame.Position = UDim2.new(0.5, -180, 0.5, -230)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+-- Header com gradiente
+local header = Instance.new("TextLabel", frame)
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 44)
+header.BackgroundColor3 = Color3.fromRGB(40, 80, 160)
+header.TextColor3 = Color3.new(1,1,1)
+header.Text = "👥 Lista de Players"
+header.Font = Enum.Font.GothamBold
+header.TextSize = 20
+Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12)
+
+local grad = Instance.new("UIGradient", header)
+grad.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60,120,220)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40,80,160))
+}
+
+-- Botão de fechar
+local closeBtn = Instance.new("TextButton", header)
+closeBtn.Size = UDim2.new(0,32,0,32)
+closeBtn.Position = UDim2.new(1,-36,0.5,-16)
+closeBtn.Text = "✕"
+closeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+closeBtn.TextColor3 = Color3.new(1,1,1)
+closeBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0,8)
+closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
+
+-- Botão de minimizar
+local minimizeBtn = Instance.new("TextButton", header)
+minimizeBtn.Size = UDim2.new(0,32,0,32)
+minimizeBtn.Position = UDim2.new(1,-72,0.5,-16)
+minimizeBtn.Text = "–"
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(70,70,90)
+minimizeBtn.TextColor3 = Color3.new(1,1,1)
+minimizeBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0,8)
+
+local minimized = false
+
+-- Conteúdo (fundo preenchido)
+local content = Instance.new("Frame", frame)
+content.BackgroundColor3 = Color3.fromRGB(28, 30, 40)
+content.Size = UDim2.new(1, -16, 1, -60)
+content.Position = UDim2.new(0, 8, 0, 52)
+Instance.new("UICorner", content).CornerRadius = UDim.new(0, 10)
+
+local scrolling = Instance.new("ScrollingFrame", content)
+scrolling.BackgroundTransparency = 1
+scrolling.ScrollBarThickness = 6
+scrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrolling.Size = UDim2.new(1, 0, 1, 0)
+scrolling.ScrollBarImageColor3 = Color3.fromRGB(200, 200, 220)
+
+local list = Instance.new("UIListLayout", scrolling)
+list.Padding = UDim.new(0, 10)
+list.SortOrder = Enum.SortOrder.LayoutOrder
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        content.Visible = false
+        frame.Size = UDim2.new(0, 360, 0, 52)
+        minimizeBtn.Text = "+"
+    else
+        content.Visible = true
+        frame.Size = UDim2.new(0, 360, 0, 460)
+        minimizeBtn.Text = "–"
+    end
+end)
+
+-- Arrastar janela
+do
+    local dragging, dragInput, dragStart, startPos
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    header.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- Controle da câmera (seguir, orbitar com RMB e zoom)
+local viewingTarget = nil
+local yaw, pitch = 0, 0
+local distance = 12
+local rotating = false
+
+-- Ativa/desativa rotação com RMB
+UserInputService.InputBegan:Connect(function(input)
+    if viewingTarget and input.UserInputType == Enum.UserInputType.MouseButton2 then
+        rotating = true
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCurrentPosition
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        rotating = false
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    end
+end)
+
+-- Zoom com roda do mouse
+UserInputService.InputChanged:Connect(function(input)
+    if viewingTarget and input.UserInputType == Enum.UserInputType.MouseWheel then
+        distance = math.clamp(distance - input.Position.Z, 6, 40)
+    end
+end)
+
+-- Rotação com mouse (quando RMB pressionado)
+UserInputService.InputChanged:Connect(function(input)
+    if viewingTarget and rotating and input.UserInputType == Enum.UserInputType.MouseMovement then
+        yaw = yaw - input.Delta.X * 0.003
+        pitch = math.clamp(pitch - input.Delta.Y * 0.003, -1.2, 1.2)
+    end
+end)
+
+-- Atualiza câmera
+RunService.RenderStepped:Connect(function()
+    local cam = workspace.CurrentCamera
+    if viewingTarget and viewingTarget.Character and viewingTarget.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = viewingTarget.Character.HumanoidRootPart
+        cam.CameraType = Enum.CameraType.Scriptable
+
+        local rot = CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0)
+        local offset = rot * Vector3.new(0, 0, distance)
+        local pos = hrp.Position + offset
+
+        cam.CFrame = CFrame.new(pos, hrp.Position)
+    end
+end)
+
+-- Linha de player (nome + botão à direita)
+local function CriarLinhaPlayer(parent, plr)
+    local row = Instance.new("Frame")
+    row.Name = "Row_" .. plr.Name
+    row.BackgroundColor3 = Color3.fromRGB(36, 38, 50)
+    row.Size = UDim2.new(1, 0, 0, 36)
+    row.Parent = parent
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
+
+    local nameLabel = Instance.new("TextLabel", row)
+    nameLabel.Name = "Name"
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = plr.Name
+    nameLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextScaled = true
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Size = UDim2.new(1, -48, 1, 0)
+    nameLabel.Position = UDim2.new(0, 8, 0, 0)
+    Instance.new("UITextSizeConstraint", nameLabel).MaxTextSize = 28
+
+    local viewBtn = Instance.new("TextButton", row)
+    viewBtn.Name = "ViewBtn"
+    viewBtn.Size = UDim2.new(0, 32, 0, 32)
+    viewBtn.Position = UDim2.new(1, -40, 0.5, -16)
+    viewBtn.Text = "🔍"
+    viewBtn.BackgroundColor3 = Color3.fromRGB(70,70,90)
+    viewBtn.TextColor3 = Color3.new(1,1,1)
+    viewBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", viewBtn).CornerRadius = UDim.new(0,8)
+
+    -- Botão de ver/voltar
+    viewBtn.MouseButton1Click:Connect(function()
+        local cam = workspace.CurrentCamera
+        if not viewingTarget then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                viewingTarget = plr
+                viewBtn.Text = "↩"
+                yaw, pitch = 0, 0
+                distance = 12
+            end
+        else
+            viewingTarget = nil
+            cam.CameraType = Enum.CameraType.Custom
+            local myHum = player.Character and player.Character:FindFirstChild("Humanoid")
+            if myHum then cam.CameraSubject = myHum end
+            viewBtn.Text = "🔍"
+            rotating = false
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        end
+    end)
+
+    -- Efeito colorido para nicks especiais
+    if table.find(listaEspecial, plr.Name) then
+        task.spawn(function()
+            local cores = {
+                Color3.fromRGB(255,0,0),
+                Color3.fromRGB(0,255,0),
+                Color3.fromRGB(0,0,255),
+                Color3.fromRGB(255,255,0),
+                Color3.fromRGB(255,0,255),
+                Color3.fromRGB(0,255,255),
+                Color3.fromRGB(255,255,255)
+            }
+            while row.Parent do
+                for _, cor in ipairs(cores) do
+                    local tween = TweenService:Create(nameLabel, TweenInfo.new(tempo, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {TextColor3 = cor})
+                    tween:Play()
+                    task.wait(tempo)
+                end
+            end
+        end)
+    end
+
+    return row
+end
+
+-- Atualizar lista
+local function AtualizarLista()
+    for _, child in ipairs(scrolling:GetChildren()) do
+        if child:IsA("Frame") and child.Name:match("^Row_") then
+            child:Destroy()
+        end
+    end
+    for _, plr in ipairs(Players:GetPlayers()) do
+        CriarLinhaPlayer(scrolling, plr)
+    end
+end
+
+AtualizarLista()
+Players.PlayerAdded:Connect(AtualizarLista)
+Players.PlayerRemoving:Connect(AtualizarLista)
